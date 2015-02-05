@@ -40,9 +40,9 @@ object KNN {
         vectorizedLabeledDocuments.map({ case (label, vec) => (dist(vec, vecInputDoc), label) })
       )
 
-      val neighCounts = NearestNeighbors.countNeighborhoodVotes(neighborhood.map(_._2))
-
-      NearestNeighbors.takeLargest(neighCounts.toIndexedSeq)
+      NearestNeighbors.takeLargest(
+        NearestNeighbors.countNeighborhoodVotes(neighborhood.map(_._2)).toIndexedSeq
+      )
     }
   }
 
@@ -50,6 +50,9 @@ object KNN {
 
 object NearestNeighbors {
 
+  /**
+   * Creates a
+   */
   def countNeighborhoodVotes(neighborhood: Traversable[String]): Map[String, Int] =
     neighborhood.foldLeft(Map.empty[String, Int])(
       (m, label) =>

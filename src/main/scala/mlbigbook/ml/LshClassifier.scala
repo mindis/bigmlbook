@@ -66,11 +66,13 @@ object LshClassifier {
     )
 
     (inputDoc: Data.Document) => {
-      
+
       val vecInputDoc = vectorizer(inputDoc)
-      
-      val hashIndicies = lshFuncs.map(h => h(vecInputDoc)).toSet
-      
+
+      val hashIndicies = lshFuncs.foldLeft(Set.empty[Int])(
+        (hIndexSet, h) => hIndexSet + h(vecInputDoc)
+      )
+
       val documentsFromAllBins = hashIndicies.flatMap(hIndex => perTableRankers(hIndex)(vecInputDoc))
 
       val topDocumentsFromBins = Rank.takeTopK(
@@ -78,9 +80,9 @@ object LshClassifier {
         documentsFromAllBins
       )
 
-      val neighborhoodVotes = NearestNeighbors.countNeighborhoodVotes(topDocumentsFromBins.map(_._2))
-
-      NearestNeighbors.takeLargest(neighborhoodVotes.toIndexedSeq)
+      NearestNeighbors.takeLargest(
+        NearestNeighbors.countNeighborhoodVotes(topDocumentsFromBins.map(_._2)).toIndexedSeq
+      )
     }
   }
 }
