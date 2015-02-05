@@ -1,6 +1,6 @@
 package mlbigbook.ml
 
-import mlbigbook.wordcount.{ Data, DistData, Vector, Vectorizer }
+import mlbigbook.wordcount.{ Data, DistData, Vector, Vectorizer, Rank }
 
 trait Labeled {
   def label: String
@@ -35,25 +35,51 @@ object KNN {
 
       val vecInputDoc = vectorizer(inputDoc)
 
-      val neighborhood = vectorizedLabeledDocuments
-        .map({ case (label, vec) => (dist(vec, vecInputDoc), label) })
-        .sortBy(-_._1)
-        .take(kNeighborhoodSize)
+      val neighborhood = Rank.takeTopK(
+        kNeighborhoodSize,
+        vectorizedLabeledDocuments.map({ case (label, vec) => (dist(vec, vecInputDoc), label) })
+      )
 
-      val neighCounts = neighborhood.foldLeft(Map.empty[String, Int])({
-        case (m, (neighbor, label)) =>
-          if (m.contains(label)) {
-            val newCount = m(label) + 1
-            (m - label) + (label -> newCount)
-          } else {
-            m + (label -> 1)
-          }
-      })
+      val neighCounts = NearestNeighbors.countNeighborhoodVotes(neighborhood.map(_._2))
 
-      neighCounts.toList
-        .sortBy(-_._2)
-        .take(1)(0)._1
-
+      NearestNeighbors.takeLargest(neighCounts.toIndexedSeq)
     }
   }
+
+}
+
+object NearestNeighbors {
+
+  def countNeighborhoodVotes(neighborhood: Traversable[String]): Map[String, Int] =
+    neighborhood.foldLeft(Map.empty[String, Int])(
+      (m, label) =>
+        if (m.contains(label)) {
+          val newCount = m(label) + 1
+          (m - label) + (label -> newCount)
+        } else {
+          m + (label -> 1)
+        }
+    )
+
+  def takeLargest[N](elements: IndexedSeq[(String, N)])(implicit n: Numeric[N]): String =
+    elements.size match {
+
+      case 0 =>
+        ""
+
+      case 1 =>
+        elements(0)._1
+
+      case _ =>
+        elements.slice(1, elements.size)
+          .foldLeft(elements(0))({
+            case ((maxLabel, maxValue), (label, value)) =>
+              if (n.gt(value, maxValue))
+                (label, value)
+              else
+                (maxLabel, maxValue)
+          })._1
+
+    }
+
 }
