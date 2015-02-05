@@ -43,6 +43,10 @@ object Rank {
     }
   }
 
+  /**
+   * Evaluates to a Traversable containing the elements that have the largest associated values in the input. The
+   * returned Traversable has at most limit items.
+   */
   def takeTopK[T, N](limit: Int, elements: DistData[(N, T)])(implicit n: Numeric[N], c: ClassTag[N]): Traversable[(N, T)] =
     elements
       .sortBy(_._1)(c, n.reverse)

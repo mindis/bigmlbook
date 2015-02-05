@@ -13,7 +13,7 @@ object LSH {
    * of size vectorspaceSize.
    */
   def create(nLSHFuncs: Int, vectorspaceSize: Int, bandSize: Int)(implicit rand: Random): Seq[LSH.Type] =
-    (0 until nLSHFuncs).map(ignore => create(vectorspaceSize, bandSize))
+    Seq.fill(nLSHFuncs)(create(vectorspaceSize, bandSize))
 
   /**
    * Constructs a locality sensistive hash function that is appropriate for a vector space
@@ -23,12 +23,13 @@ object LSH {
    * compute the modulo of this summation with respect to the band size (bandSize).
    */
   def create(vectorspaceSize: Int, bandSize: Int)(implicit rand: Random): Type = {
-    val selectedDimensions =
-      (0 until vectorspaceSize)
-        .map(dimension => (dimension, rand.nextBoolean))
-        .filter(_._2)
-        .map(_._1)
-        .toIndexedSeq
+    val selectedDimensions = (0 until vectorspaceSize).foldLeft(IndexedSeq.empty[Int])(
+      (selected, dimension) => 
+        if(rand.nextBoolean)
+          selected :+ dimension
+        else
+          selected
+    )
 
     (v: Vector) => {
       val projectedSum = selectedDimensions.foldLeft(0.0)(

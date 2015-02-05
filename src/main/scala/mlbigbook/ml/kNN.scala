@@ -50,8 +50,9 @@ object KNN {
 
 object NearestNeighbors {
 
-  /**
-   * Creates a
+  /** 
+   * Counts the number of times each element occurs in neighborhood. 
+   * Returns this information as a mapping.
    */
   def countNeighborhoodVotes(neighborhood: Traversable[String]): Map[String, Int] =
     neighborhood.foldLeft(Map.empty[String, Int])(
@@ -64,6 +65,10 @@ object NearestNeighbors {
         }
     )
 
+  /** 
+   * Evaluates to the String associated with the largest value (of Numeric type N). If the input
+   * elements is empty, evaluates to the empty string ("").
+   */
   def takeLargest[N](elements: IndexedSeq[(String, N)])(implicit n: Numeric[N]): String =
     elements.size match {
 
