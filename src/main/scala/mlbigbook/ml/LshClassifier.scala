@@ -48,15 +48,16 @@ object LshClassifier {
   def apply(
     nLSHFuncs: Int,
     bandSize: Int)(
-      dist: Vector.Distance,
-      kNeighborhoodSize: Int,
-      mkVec: Vectorizer.Maker)(labeledCorpus: LabeledCorpus): Type = {
+    dist: Vector.Distance,
+    kNeighborhoodSize: Int)(
+    mkVec: Vectorizer.Maker,
+    labeledCorpus: LabeledCorpus): Type = {
 
     val vectorizer = mkVec(labeledCorpus.corpus.map(_.example))
     val vectorizedLabeledData = labeledCorpus.corpus.map(d => (d.label, vectorizer(d.example)))
 
-    val vectorspaceSize = vectorizedLabeledData.take(1).toSeq(0)._2.cardinality
     val lshFuncs = {
+      val vectorspaceSize = vectorizedLabeledData.take(1).toSeq(0)._2.cardinality
       implicit val rand = new Random()
       LSH.create(nLSHFuncs, vectorspaceSize, bandSize)
     }

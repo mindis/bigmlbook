@@ -25,8 +25,9 @@ object KNN {
 
   def apply(
     dist: Vector.Distance,
-    kNeighborhoodSize: Int,
-    mkVec: Vectorizer.Maker)(labeledCorpus: LabeledCorpus): Type = {
+    kNeighborhoodSize: Int)(
+    mkVec: Vectorizer.Maker,
+    labeledCorpus: LabeledCorpus): Type = {
 
     val vectorizer = mkVec(labeledCorpus.corpus.map(_.example))
     val vectorizedLabeledDocuments = labeledCorpus.corpus.map(d => (d.label, vectorizer(d.example)))
@@ -79,7 +80,7 @@ object NearestNeighbors {
         elements(0)._1
 
       case _ =>
-        elements.slice(1, elements.size)
+        elements.toIndexedSeq.slice(1, elements.size)
           .foldLeft(elements(0))({
             case ((maxLabel, maxValue), (label, value)) =>
               if (n.gt(value, maxValue))
