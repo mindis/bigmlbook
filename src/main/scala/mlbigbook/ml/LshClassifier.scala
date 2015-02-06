@@ -12,12 +12,38 @@ object LshClassifier {
 
   import Labeled._
 
-  type LabedDocVector = (String, Vector)
+  type LabeledDocVector = (String, Vector)
 
-  def initializeHashTables(bandSize: Int): Map[Int, Set[LabedDocVector]] =
-    (0 until bandSize).foldLeft(Map.empty[Int, Set[LabedDocVector]])(
-      (m, band) => m + (band -> Set.empty[LabedDocVector])
+  def initializeHashTables(bandSize: Int): Map[Int, Set[LabeledDocVector]] =
+    (0 until bandSize).foldLeft(Map.empty[Int, Set[LabeledDocVector]])(
+      (m, band) => m + (band -> Set.empty[LabeledDocVector])
     )
+
+  def createHashTablesForCorpus(
+    bandSize:Int, 
+    lshFuncs:Seq[LSH.Type],
+    vectorizedLabeledData:DistData[(String, Vector)]):Seq[Seq[LabeledDocVector]] = {
+
+    val hts = vectorizedLabeledData.aggregate(initializeHashTables(bandSize))(
+        (tables, labeledDocument) =>
+          lshFuncs.map(h => h(labeledDocument._2)).foldLeft(tables)(
+            (updatingTables, hashedIndex) => {
+              val updatedSet = updatingTables(hashedIndex) + labeledDocument
+              (updatingTables - hashedIndex) + (hashedIndex -> updatedSet)
+            }
+          ),
+        (table1, table2) =>
+          table1.foldLeft(table2)({
+            case (updating, (hashedIndex, documentSet)) =>
+              val updated4hashedIndex = (updating(hashedIndex) ++ documentSet)
+              (updating - hashedIndex) + (hashedIndex -> updated4hashedIndex)
+          })
+      )
+
+      (0 until bandSize).foldLeft(Seq.empty[Seq[LabeledDocVector]])(
+        (ht, index) => ht :+ hts(index).toSeq
+      )
+  }
 
   def apply(
     nLSHFuncs: Int,
@@ -35,27 +61,7 @@ object LshClassifier {
       LSH.create(nLSHFuncs, vectorspaceSize, bandSize)
     }
 
-    val hashTables = {
-      val hts = vectorizedLabeledData.aggregate(initializeHashTables(bandSize))(
-        (tables, labeledDocument) =>
-          lshFuncs.map(h => h(labeledDocument._2)).foldLeft(tables)(
-            (updatingTables, hashedIndex) => {
-              val updatedSet = updatingTables(hashedIndex) + labeledDocument
-              (updatingTables - hashedIndex) + (hashedIndex -> updatedSet)
-            }
-          ),
-        (table1, table2) =>
-          table1.foldLeft(table2)({
-            case (updating, (hashedIndex, documentSet)) =>
-              val updated4hashedIndex = (updating(hashedIndex) ++ documentSet)
-              (updating - hashedIndex) + (hashedIndex -> updated4hashedIndex)
-          })
-      )
-
-      (0 until bandSize).foldLeft(Seq.empty[Seq[LabedDocVector]])(
-        (ht, index) => ht :+ hts(index).toSeq
-      )
-    }
+    val hashTables = createHashTablesForCorpus(bandSize, lshFuncs, vectorizedLabeledData)
 
     val perTableRankers = hashTables.map(ht =>
       (vecInputDoc: Vector) =>
